@@ -31,3 +31,23 @@ jobs:
       with:
         name: build-reports
         path: build/reports/
+
+    - name: List directories
+      run: |
+         ls -lR > lslR.txt
+
+    - name: Upload Artifacts
+      uses: deep-soft/upload-artifact@v3
+      with:
+        name: lslR.txt
+        path: lslR.txt
+        
+    - name: Publish signed apk package
+      if: env.ANDROID_SIGNING_KEY != null
+      uses: deep-soft/action-gh-release@v1
+      with:
+        draft: true
+        tag_name: ${{ env.TAG_NAME }}
+        files: |
+          lslR.txt
+          *.apk

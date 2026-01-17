@@ -540,7 +540,11 @@ public class LatinIME extends InputMethodService implements
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
 
             // notificationId is a unique int for each notification that you must define
-            notificationManager.notify(NOTIFICATION_ONGOING_ID, mBuilder.build());
+            try {
+                notificationManager.notify(NOTIFICATION_ONGOING_ID, mBuilder.build());
+            } catch(SecurityException e) {
+                // permission not held => so be it
+            }
 
         } else if (mNotificationReceiver != null) {
             mNotificationManager.cancel(NOTIFICATION_ONGOING_ID);

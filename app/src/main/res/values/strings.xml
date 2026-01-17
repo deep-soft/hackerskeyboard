@@ -17,7 +17,10 @@
 ** limitations under the License.
 */
 -->
-<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2"
+	   xmlns:tools="http://schemas.android.com/tools"
+	   tools:ignore="MissingTranslation"
+	   >
     <!-- Title for Latin keyboard  -->
     <string name="english_ime_name" translatable="false">Hacker\'s Keyboard</string>
     <!-- Title for Latin keyboard settings activity / dialog -->

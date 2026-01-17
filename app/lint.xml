@@ -1,11 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <lint>
-    <issue id="NamespaceTypo" severity="ignore" />
-    <!-- only problem was that we used android: shortcut for our own
-	 namespace. Not a typo, we are deliberately defining a new
-	 namespace because we are defining new tags
-    -->
-
     <issue id="ExtraTranslation" severity="ignore" />
     <!-- not pretty, but no reason why this should be blocking
     -->

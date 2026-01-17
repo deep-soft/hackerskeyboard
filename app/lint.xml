@@ -10,4 +10,8 @@
     <!-- not pretty, but no reason why this should be blocking
     -->
 
+    <issue id="ExpiredTargetSdkVersion" severity="ignore" />
+    <!-- allow us to upgrade gradle at a different pace than Sdk
+    -->
+    
 </lint>

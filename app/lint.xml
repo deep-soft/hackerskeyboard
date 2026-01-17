@@ -4,10 +4,6 @@
     <!-- not pretty, but no reason why this should be blocking
     -->
 
-    <issue id="ExpiredTargetSdkVersion" severity="ignore" />
-    <!-- allow us to upgrade gradle at a different pace than Sdk
-    -->
-
     <issue id="NotificationPermission" severity="ignore" />
     <!-- ignore this for now, obscure feature which most won't use,
 	 and if they do they'll grant the permission pro-actively -->

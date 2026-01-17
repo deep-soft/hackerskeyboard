@@ -26,7 +26,6 @@ import android.app.AlertDialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -48,6 +47,7 @@ import android.preference.PreferenceActivity;
 import android.preference.PreferenceManager;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -476,7 +476,6 @@ public class LatinIME extends InputMethodService implements
         }
     }
 
-    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     private void setNotification(boolean visible) {
         String ns = Context.NOTIFICATION_SERVICE;
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(ns);
@@ -491,12 +490,8 @@ public class LatinIME extends InputMethodService implements
             mNotificationReceiver = new NotificationReceiver(this);
             final IntentFilter pFilter = new IntentFilter(NotificationReceiver.ACTION_SHOW);
             pFilter.addAction(NotificationReceiver.ACTION_SETTINGS);
-            if (Build.VERSION.SDK_INT >= 33) {
-                registerReceiver(mNotificationReceiver, pFilter,
-                                 Context.RECEIVER_EXPORTED);
-            } else {
-                registerReceiver(mNotificationReceiver, pFilter);
-            }
+            ContextCompat.registerReceiver(this,mNotificationReceiver, pFilter,
+                                           ContextCompat.RECEIVER_EXPORTED);
             
             Intent notificationIntent = new Intent(NotificationReceiver.ACTION_SHOW);
             PendingIntent contentIntent = PendingIntent.getBroadcast(getApplicationContext(), 1, notificationIntent, PendingIntent.FLAG_IMMUTABLE);

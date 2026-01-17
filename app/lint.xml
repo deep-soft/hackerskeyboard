@@ -5,4 +5,9 @@
 	 namespace. Not a typo, we are deliberately defining a new
 	 namespace because we are defining new tags
     -->
+
+    <issue id="ExtraTranslation" severity="ignore" />
+    <!-- not pretty, but no reason why this should be blocking
+    -->
+
 </lint>

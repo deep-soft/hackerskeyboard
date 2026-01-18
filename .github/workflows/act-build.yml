@@ -217,7 +217,8 @@ jobs:
           echo "LIST: " ${{ env.SIGNED_APK_FOLDER }};
           ls -l ${{ env.SIGNED_APK_FOLDER }};
           #mv ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}${{env.PRG_VERSION_suffix}}-${{ env.PRG_FLAVOR }}-release-unsigned.apk ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-release.apk;
-          mv ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-release-unsigned.apk ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-release.apk;
+          #mv ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-release-unsigned.apk ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-release.apk;
+          mv ${{ env.SIGNED_APK_FOLDER }}app-release-unsigned.apk ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-release.apk;
           echo "LIST: " ${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-release.apk;
           ls -l ${{ env.SIGNED_APK_FOLDER }};
 

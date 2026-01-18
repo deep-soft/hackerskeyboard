@@ -13,6 +13,10 @@ on:
         description: Create archive with ~ all files
         type: boolean
         default: false
+      DEBUG_LS:
+        description: debug ls
+        type: boolean
+        default: false
 
 env:
   PRG_NAME: "HackersKeyboard"
@@ -38,8 +42,10 @@ jobs:
     if: inputs.validation == true
     runs-on: ubuntu-latest
     steps:
-      - uses: deep-soft/checkout@v4
-      - uses: deep-soft/wrapper-validation-action@v1
+      - name: Checkout
+        uses: deep-soft/checkout@v4
+      - name: Validation
+        uses: gradle/actions/wrapper-validation@v5
 
   build:
     runs-on: ubuntu-latest
@@ -58,7 +64,7 @@ jobs:
           _ref_len_="${#_ref_org_}"
           _ref_=$(echo ${_ref_all_::$_ref_len_})
           #_prg_version_=$(grep versionName "app/${{ env.PRG_NAME }}/build.gradle" | awk -F '= ' '{print $2}' | awk -F '"' '{print $2}')
-          _prg_version_base_="v"$(grep "versionName " app/build.gradle  | cut -d '"' -f2)
+          _prg_version_base_=$(grep "versionName " app/build.gradle  | cut -d '"' -f2)
           #_prg_version_=$_prg_version_base_-$(grep "versionCode" app/build.gradle  | awk '{print $3}')
           _prg_version_=$_prg_version_base_
           echo "TAG_REF=$_ref_" >> $GITHUB_ENV
@@ -112,10 +118,12 @@ jobs:
         env: 
           SED_EXE: ${{ env.SED_EXE }}
         run: |
-          echo patch 1 run
-          bash ./NG_PCH_SH.sh
-          rm ./NG_PCH_SH.sh
-          echo Done patch 1
+          if [ -f ./NG_PCH_SH.sh]; then
+            echo patch 1 run
+            bash ./NG_PCH_SH.sh
+            rm ./NG_PCH_SH.sh
+            echo Done patch 1
+          fi
 # patch1 end
 
 # zip source begin
@@ -150,14 +158,14 @@ jobs:
             ${{ env.ZIP_RELEASE_SOURCE }}
 # zip source end
 
-      - name: Setup java (v3)
+      - name: Setup java (v4)
         uses: deep-soft/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - name: gradle build (v2)
-        uses: deep-soft/gradle-build-action@v3
+      - name: gradle setup (v5)
+        uses: gradle/actions/setup-gradle@v5
 
       - name: gradle  Assemble github Release
         run: ./gradlew assembleRelease
@@ -201,17 +209,17 @@ jobs:
       - name: Copy apk from outputs/
         shell: bash
         run: |
-          set -x
-          mkdir -p signed-apk
-          echo "LIST: " ./app/build/outputs/apk/release/
-          ls -l ./app/build/outputs/apk/release/
-          cp ./app/build/outputs/apk/release/* ${{ env.SIGNED_APK_FOLDER }}
-          echo "LIST: " ${{ env.SIGNED_APK_FOLDER }}
-          ls -l ${{ env.SIGNED_APK_FOLDER }}
-          #mv ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}${{env.PRG_VERSION_suffix}}-${{ env.PRG_FLAVOR }}-release-unsigned.apk ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-release.apk
-          mv ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-release-unsigned.apk ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-release.apk
-          echo "LIST: " ${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-release.apk
-          ls -l ${{ env.SIGNED_APK_FOLDER }}
+          set -x;
+          mkdir -p signed-apk;
+          echo "LIST: " ./app/build/outputs/apk/release/;
+          ls -l ./app/build/outputs/apk/release/;
+          cp ./app/build/outputs/apk/release/* ${{ env.SIGNED_APK_FOLDER }} || true;
+          echo "LIST: " ${{ env.SIGNED_APK_FOLDER }};
+          ls -l ${{ env.SIGNED_APK_FOLDER }};
+          #mv ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}${{env.PRG_VERSION_suffix}}-${{ env.PRG_FLAVOR }}-release-unsigned.apk ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-release.apk;
+          mv ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-release-unsigned.apk ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-release.apk;
+          echo "LIST: " ${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-release.apk;
+          ls -l ${{ env.SIGNED_APK_FOLDER }};
 
       - uses: deep-soft/sign-android-release@v1
         name: Sign app APK

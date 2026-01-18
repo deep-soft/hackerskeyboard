@@ -134,7 +134,7 @@ jobs:
         env: 
           SED_EXE: ${{ env.SED_EXE }}
         run: |
-          if [ -f ./NG_PCH_SH.sh]; then
+          if [ -f ./NG_PCH_SH.sh ]; then
             echo patch 2 run;
             bash ./NG_PCH_SH.sh;
             rm ./NG_PCH_SH.sh;

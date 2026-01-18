@@ -1,0 +1,283 @@
+name: HackersKeyboard - github
+# 2026-01-18 08:20
+
+on:
+  workflow_dispatch:
+    inputs:
+      validation:
+        description: Validation
+        type: boolean
+        default: false
+      create-archive-all:
+        description: Create archive with ~ all files
+        type: boolean
+        default: false
+
+env:
+  PRG_NAME: "HackersKeyboard"
+  PRG_VERSION: "v1.41.1"
+  PRG_VERSION_suffix: "a"
+  PRG_FLAVOR: "github"
+  TAG_NAME: "HackersKeyboard"
+  TAG_VERSION: "v1.41.1"
+  TAG_BUILD: "-b"
+  TAG_REF: "0000000"
+  ANDROID_SIGNING_KEY: '${{ secrets.ANDROID_SIGNING_KEY }}'
+  #  signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
+  #  alias: ${{ secrets.ANDROID_ALIAS }}
+  #  keyStorePassword: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
+  #  keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+  # BUILD_TOOLS_VERSION: "34.0.0"
+  # BUILD_TOOLS_VERSION: ${{ env.BUILD_TOOLS_VERSION }}
+  BUILD_TOOLS_VERSION: "34.0.0"
+  SIGNED_APK_FOLDER: './signed-apk/'
+
+jobs:
+  validation:
+    if: inputs.validation == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: deep-soft/checkout@v4
+      - uses: deep-soft/wrapper-validation-action@v1
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: deep-soft/checkout@v4
+
+      - name: Get ref, set build version
+        continue-on-error: true
+        shell: bash
+        run: |
+          # set -x
+          _ref_all_=$(git log -1 --format='%H')
+          # _ref_=$(echo ${_ref_all_::7})
+          _ref_org_=${{ env.TAG_REF }}
+          _ref_len_="${#_ref_org_}"
+          _ref_=$(echo ${_ref_all_::$_ref_len_})
+          #_prg_version_=$(grep versionName "app/${{ env.PRG_NAME }}/build.gradle" | awk -F '= ' '{print $2}' | awk -F '"' '{print $2}')
+          _prg_version_base_="v"$(grep "versionName " app/build.gradle  | cut -d '"' -f2)
+          #_prg_version_=$_prg_version_base_-$(grep "versionCode" app/build.gradle  | awk '{print $3}')
+          _prg_version_=$_prg_version_base_
+          echo "TAG_REF=$_ref_" >> $GITHUB_ENV
+          _build_=${{ env.TAG_BUILD }}.$_ref_
+          echo "TAG_BUILD=$_build_" >> $GITHUB_ENV
+          echo "PRG_VERSION=$_prg_version_" >> $GITHUB_ENV
+          echo "TAG_VERSION=$_prg_version_" >> $GITHUB_ENV
+
+      - name: Print ref, build version
+        shell: bash
+        run: |
+          echo "NAM: ${{ env.PRG_NAME }}"
+          echo "VER: ${{ env.PRG_VERSION }}"
+          echo "TAG: ${{ env.TAG_VERSION }}"
+          echo "REF: ${{ env.TAG_REF }}"
+          echo "BLD: ${{ env.TAG_BUILD }}"
+          echo "${{ env.PRG_NAME }}-src-${{ env.PRG_VERSION }}-${{ env.TAG_BUILD }}" > _tag_name_.txt
+
+# signingConfig signingConfigs.release
+      - name: skip sign
+        shell: bash
+        run: |
+          #set -x;
+          sed -i '/^    signingConfigs {$/,/^    }$/d' app/build.gradle;
+          sed -i '/signingConfig signingConfigs.release/d' app/build.gradle;
+          #sed -i '/^def keystoreProperties = new Properties()$/,/^keystoreProperties.load(new FileInputStream(rootProject.file(\"keystore.properties\")))$/d' app/build.gradle;
+          sed -i '/^def keystorePropertiesFile = rootProject.file(\"keystore.properties\")$/d' app/build.gradle;
+          sed -i '/^def keystoreProperties = new Properties()/d' app/build.gradle;
+          sed -i '/^keystoreProperties.load(new FileInputStream(keystorePropertiesFile))/d' app/build.gradle;
+          echo "sign ... ";
+          grep -i sign app/build.gradle || true;
+          sleep 2
+          echo "keystore ... ";
+          grep keystore app/build.gradle || true;
+          echo "... done";
+
+# patch1 begin
+      - name: Prepare for patch 1
+        continue-on-error: false
+        shell: bash
+        run: |
+          echo "$NG_PCH_SH"  | base64 --decode > ./NG_PCH_SH.sh
+          if [ "${{ env.DEBUG_LS }}" = "yes" ]; then
+            ls -l
+            pwd
+          fi
+
+      - name: Apply patch 1
+        continue-on-error: true
+        shell: bash
+        env: 
+          SED_EXE: ${{ env.SED_EXE }}
+        run: |
+          echo patch 1 run
+          bash ./NG_PCH_SH.sh
+          rm ./NG_PCH_SH.sh
+          echo Done patch 1
+# patch1 end
+
+# zip source begin
+      - name: Create Archive source
+#        if: inputs.create-archive-all == true
+        uses: deep-soft/zip-release@v2
+        with:
+          type: 'zip'
+          filename: '${{ env.TAG_NAME }}-${{ env.TAG_VERSION }}-${{ env.PRG_FLAVOR }}-src.zip'
+          directory: '.'
+          path: '.'
+          exclusions: '*.git* ./*.git/* ./app/schemas/* ./app/schemas/ /*node_modules/* .editorconfig'
+          env_variable: 'ZIP_RELEASE_SOURCE'
+          # default archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
+
+      - name: print env value
+#        if: inputs.create-archive-all == true
+        shell: bash
+        run: |
+          echo "env.ZIP_RELEASE_SOURCE=${{ env.ZIP_RELEASE_SOURCE }}"
+          echo "env.ZIP_RELEASE_ARCHIVE=${{ env.ZIP_RELEASE_ARCHIVE }}"
+
+      - name: Publish source
+#        if: inputs.create-archive-all == true
+        continue-on-error: true
+        uses: deep-soft/action-gh-release@v2.1
+        with:
+          draft: true
+          tag_name: ${{ env.TAG_NAME }}-${{ env.PRG_FLAVOR }}
+          files: |
+            ${{ env.ASSET_REL }}
+            ${{ env.ZIP_RELEASE_SOURCE }}
+# zip source end
+
+      - name: Setup java (v3)
+        uses: deep-soft/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: gradle build (v2)
+        uses: deep-soft/gradle-build-action@v3
+
+      - name: gradle  Assemble github Release
+        run: ./gradlew assembleRelease
+
+# zip release begin
+      - name: Create Archive ALL
+        continue-on-error: true
+        id: zip_archive_all
+        if: inputs.create-archive-all == true
+        uses: deep-soft/zip-release@v3
+        with:
+          type: '7z'
+          filename: '${{ env.TAG_NAME }}-${{ env.TAG_VERSION }}-${{ env.PRG_FLAVOR }}-ALL'
+          directory: '.'
+          path: '.'
+          exclusions: '*.git* /*node_modules/* .editorconfig'
+          volume_size: '2g'
+          env_variable: 'ZIP_ARCHIVE_ALL'
+          # archive name is ${{ env.ZIP_RELEASE_ARCHIVE }}
+
+      - name: Publish Archive ALL
+        if: inputs.create-archive-all == true
+        continue-on-error: true
+        uses: deep-soft/action-gh-release@v2.1
+        with:
+          draft: true
+          tag_name: ${{ env.TAG_NAME }}-${{ env.PRG_FLAVOR }}-ALL
+          filelist: ${{ steps.zip_archive_all.outputs.volumes_list_name }}
+          files: |
+              ${{ env.ZIP_ARCHIVE_ALL }}
+              _tag_name_.txt              
+# zip release end
+
+      - name: Upload Artifact
+        uses: deep-soft/upload-artifact@v4
+        with:
+          name: upload-artifact
+          path: |
+            ./app/build/outputs/apk/release/
+
+      - name: Copy apk from outputs/
+        shell: bash
+        run: |
+          set -x
+          mkdir -p signed-apk
+          echo "LIST: " ./app/build/outputs/apk/release/
+          ls -l ./app/build/outputs/apk/release/
+          cp ./app/build/outputs/apk/release/* ${{ env.SIGNED_APK_FOLDER }}
+          echo "LIST: " ${{ env.SIGNED_APK_FOLDER }}
+          ls -l ${{ env.SIGNED_APK_FOLDER }}
+          #mv ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}${{env.PRG_VERSION_suffix}}-${{ env.PRG_FLAVOR }}-release-unsigned.apk ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-release.apk
+          mv ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-release-unsigned.apk ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-release.apk
+          echo "LIST: " ${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-release.apk
+          ls -l ${{ env.SIGNED_APK_FOLDER }}
+
+      - uses: deep-soft/sign-android-release@v1
+        name: Sign app APK
+        if: env.ANDROID_SIGNING_KEY != null
+        id: sign-APK
+        with:
+          releaseDirectory: ./signed-apk
+          signingKeyBase64: ${{ secrets.ANDROID_SIGNING_KEY }}
+          alias: ${{ secrets.ANDROID_ALIAS }}
+          keyStorePassword: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
+          keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        env:
+          # override default build-tools version (29.0.3) -- optional
+          # BUILD_TOOLS_VERSION: "30.0.2"
+          BUILD_TOOLS_VERSION: ${{ env.BUILD_TOOLS_VERSION }}
+
+      - name: Upload Artifacts
+        if: env.ANDROID_SIGNING_KEY != null
+        uses: deep-soft/upload-artifact@v4
+        with:
+          name: ${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-release.apk
+          path: ${{steps.sign-APK.outputs.signedReleaseFile}}
+
+      - name: Publish signed apk package
+        if: env.ANDROID_SIGNING_KEY != null
+        uses: deep-soft/action-gh-release@v2.1
+        with:
+          draft: true
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
+            ${{steps.sign-APK.outputs.signedReleaseFile}}
+            _tag_name_.txt
+
+      - name: Publish version build - signed apk package
+        if: env.ANDROID_SIGNING_KEY != null
+        uses: deep-soft/action-gh-release@v2.1
+        with:
+          draft: true
+          tag_name: ${{ env.TAG_NAME }}-${{ env.TAG_VERSION }}${{ env.TAG_BUILD }}
+          files: |
+            ${{steps.sign-APK.outputs.signedReleaseFile}}
+            _tag_name_.txt
+
+      - name: Prepare to Publish latest build - signed apk package
+        if: env.ANDROID_SIGNING_KEY != null
+        shell: bash
+        run: |
+          set -x
+          cp ${{steps.sign-APK.outputs.signedReleaseFile}} ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-latest.apk
+          ls -la ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-latest.apk || true;
+
+      - name: Publish latest build - signed apk package
+        if: env.ANDROID_SIGNING_KEY != null
+        uses: deep-soft/action-gh-release@v2.1
+        with:
+          draft: true
+          tag_name: ${{ env.TAG_NAME }}-latest
+          files: |
+            ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-latest.apk
+            _tag_name_.txt
+
+      - name: Publish unsigned apk package
+        if: env.ANDROID_SIGNING_KEY == null
+        uses: deep-soft/action-gh-release@v2.1
+        with:
+          draft: true
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
+            ${{ env.SIGNED_APK_FOLDER }}${{ env.PRG_NAME }}-${{ env.PRG_VERSION }}-${{ env.PRG_FLAVOR }}-unsigned.apk
+            _tag_name_.txt
